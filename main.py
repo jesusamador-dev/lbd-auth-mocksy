@@ -1,5 +1,5 @@
 from typing import Dict
-
+from mangum import Mangum
 from fastapi import FastAPI
 from src.infrastructure.repositories.postgresql.database_postgress import DatabasePostgres
 
@@ -19,3 +19,6 @@ async def say_hello(name: str) -> Dict[str, str]:  # Agregamos el tipo de retorn
 @app.on_event("shutdown")
 def shutdown():
     DatabasePostgres.get_instance().close()
+
+
+handler = Mangum(app)
