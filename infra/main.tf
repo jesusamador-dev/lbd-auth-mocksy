@@ -20,7 +20,6 @@ resource "aws_s3_object" "lambda_zip" {
 # Data source para buscar el rol existente
 data "aws_iam_role" "existing_role" {
   name = var.lambda_role
-  ignore_errors = true
 }
 
 # Crear el rol si no existe
