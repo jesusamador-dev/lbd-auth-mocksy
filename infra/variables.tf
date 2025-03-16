@@ -47,7 +47,7 @@ variable "lambda_function_name" {
 
 variable "lambda_role" {
   type    = string
-  default = "mocksy-lambda-role"
+  default = "MocksyLambdaRole"
 }
 
 variable "aws_region" {
