@@ -46,5 +46,5 @@ variable "lambda_role" {
 
 variable "aws_region" {
   type    = string
-  default = "us-east-2"
+  default = "us-east-1"
 }
