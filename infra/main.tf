@@ -4,7 +4,7 @@ provider "aws" {
 
 # Bucket S3 para almacenar el ZIP de la Lambda
 resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "kuosel-lambda-bucket-${random_id.bucket_id.hex}"
+  bucket = "mocksy-lambda-bucket-${random_id.bucket_id.hex}"
 }
 
 resource "random_id" "bucket_id" {
@@ -65,7 +65,7 @@ data "aws_lambda_function" "existing_lambda" {
 }
 
 # Unificar creación y actualización de Lambda
-resource "aws_lambda_function" "kuosel_lambda" {
+resource "aws_lambda_function" "mocksy_lambda" {
   count         = length(try(data.aws_lambda_function.existing_lambda.id, [])) > 0 ? 0 : 1
   function_name = var.lambda_function_name
   handler       = "main.handler"
