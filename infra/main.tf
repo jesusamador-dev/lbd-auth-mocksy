@@ -1,5 +1,5 @@
 provider "aws" {
-  region = vars.aws_region
+  region = var.aws_region
 }
 
 # Bucket S3 para almacenar el ZIP de la Lambda
@@ -19,14 +19,14 @@ resource "aws_s3_object" "lambda_zip" {
 
 # Data source para buscar el rol existente
 data "aws_iam_role" "existing_role" {
-  name = vars.lambda_role
+  name = var.lambda_role
 }
 
 # Crear el rol si no existe
 resource "aws_iam_role" "lambda_execution_role" {
   count = can(data.aws_iam_role.existing_role.name) ? 0 : 1
 
-  name = vars.lambda_role
+  name = var.lambda_role
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -61,13 +61,13 @@ resource "aws_iam_role_policy_attachment" "s3_power_user" {
 
 # Data source para buscar la Lambda existente
 data "aws_lambda_function" "existing_lambda" {
-  function_name = vars.lambda_function_name
+  function_name = var.lambda_function_name
 }
 
 # Unificar creación y actualización de Lambda
 resource "aws_lambda_function" "kuosel_lambda" {
   count         = length(try(data.aws_lambda_function.existing_lambda.id, [])) > 0 ? 0 : 1
-  function_name = vars.lambda_function_name
+  function_name = var.lambda_function_name
   handler       = "main.handler"
   runtime       = "python3.11"
   s3_bucket     = aws_s3_bucket.lambda_bucket.id
