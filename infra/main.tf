@@ -93,7 +93,7 @@ resource "aws_lambda_function" "kuosel_lambda" {
       DB_HOST              = var.DB_HOST
       DB_PORT              = var.DB_PORT
       DB_NAME              = var.DB_NAME
-      PYTHONPATH           = "/var/task/dependencies:/var/task"
+      PYTHONPATH           = var.PYTHONPATH
     }
   }
 }
