@@ -83,7 +83,7 @@ jobs:
           -var="DB_HOST=${{ secrets.DB_HOST }}" \
           -var="DB_PORT=${{ secrets.DB_PORT }}" \
           -var="DB_NAME=${{ secrets.DB_NAME }}" \
-          -var="PYTHONPATH=${{ env.PYTHONPATH }}"
+          -var="PYTHONPATH=${{ vars.PYTHONPATH }}"
 
       - name: Terraform Apply
         run: |
@@ -96,7 +96,7 @@ jobs:
           -var="DB_HOST=${{ secrets.DB_HOST }}" \
           -var="DB_PORT=${{ secrets.DB_PORT }}" \
           -var="DB_NAME=${{ secrets.DB_NAME }}" \
-          -var="PYTHONPATH=${{ env.PYTHONPATH }}"
+          -var="PYTHONPATH=${{ vars.PYTHONPATH }}"
 
 
       # 11. Limpiar archivos temporales
