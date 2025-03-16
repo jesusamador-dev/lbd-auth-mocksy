@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - dev
 
 # Definir los trabajos del flujo
 jobs:
@@ -54,8 +55,8 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       # 7. Configurar Terraform
@@ -81,7 +82,8 @@ jobs:
           -var="DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
           -var="DB_HOST=${{ secrets.DB_HOST }}" \
           -var="DB_PORT=${{ secrets.DB_PORT }}" \
-          -var="DB_NAME=${{ secrets.DB_NAME }}"
+          -var="DB_NAME=${{ secrets.DB_NAME }}" \
+          -var="PYTHONPATH=${{ env.PYTHONPATH }}"
 
       - name: Terraform Apply
         run: |

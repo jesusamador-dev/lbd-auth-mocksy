@@ -10,6 +10,10 @@ variable "COGNITO_DOMAIN" {
   description = "Dominio de Cognito"
 }
 
+variable "PYTHONPATH" {
+  description = "Ruta de las dependencias de python"
+}
+
 variable "DB_USER" {
   description = "Usuario de la base de datos"
 }
