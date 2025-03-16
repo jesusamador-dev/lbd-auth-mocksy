@@ -69,12 +69,12 @@ jobs:
        # 5. Inicializar Terraform
       - name: Terraform Init
         run: |
-          terraform -chdir=infra-aws init
+          terraform -chdir=infra init
 
       - name: Terraform Plan
         run: |
           ls -la
-          terraform -chdir=infra-aws plan \
+          terraform -chdir=infra plan \
           -var="COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" \
           -var="COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" \
           -var="COGNITO_DOMAIN=${{ secrets.COGNITO_DOMAIN }}" \
@@ -87,7 +87,7 @@ jobs:
 
       - name: Terraform Apply
         run: |
-          terraform -chdir=infra-aws apply -auto-approve \
+          terraform -chdir=infra apply -auto-approve \
           -var="COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" \
           -var="COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" \
           -var="COGNITO_DOMAIN=${{ secrets.COGNITO_DOMAIN }}" \
