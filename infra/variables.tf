@@ -6,6 +6,10 @@ variable "COGNITO_CLIENT_ID" {
   description = "ID del Cliente de la aplicación en Cognito"
 }
 
+variable "COGNITO_CLIENT_SECRET" {
+  description = "ID del Cliente de la aplicación en Cognito"
+}
+
 variable "COGNITO_DOMAIN" {
   description = "Dominio de Cognito"
 }
