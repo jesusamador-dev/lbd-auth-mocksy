@@ -37,7 +37,7 @@ data "external" "iam_role_check" {
 
 # Crear el rol si no existe
 resource "aws_iam_role" "lambda_execution_role" {
-  count = data.external.iam_role_check.result.exists ? 0 : 1
+  count = data.external.iam_role_check.result.exists == "true" ? 0 : 1
 
   name = var.lambda_role
 
@@ -57,19 +57,25 @@ resource "aws_iam_role" "lambda_execution_role" {
 
 # Adjuntar política AWSLambdaBasicExecutionRole
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       =  var.lambda_role
+  role       = length(aws_iam_role.lambda_execution_role) > 0 ? aws_iam_role.lambda_execution_role[0].name : var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+  depends_on = [aws_iam_role.lambda_execution_role]
 }
 
 # Adjuntar política AmazonCognitoPowerUser
 resource "aws_iam_role_policy_attachment" "cognito_power_user" {
-  role       =  var.lambda_role
+  role       = length(aws_iam_role.lambda_execution_role) > 0 ? aws_iam_role.lambda_execution_role[0].name : var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+
+  depends_on = [aws_iam_role.lambda_execution_role]
 }
 
 resource "aws_iam_role_policy_attachment" "s3_power_user" {
-  role       = var.lambda_role
+  role       = length(aws_iam_role.lambda_execution_role) > 0 ? aws_iam_role.lambda_execution_role[0].name : var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+
+  depends_on = [aws_iam_role.lambda_execution_role]
 }
 
 
@@ -84,7 +90,7 @@ data "external" "existing_lambda" {
 
 # Unificar creación y actualización de Lambda
 resource "aws_lambda_function" "mocksy_lambda" {
-  count         = data.external.existing_lambda.result.exists ? 0 : 1
+  count         = data.external.existing_lambda.result.exists == "true" ? 0 : 1
   function_name = var.lambda_function_name
   handler       = "main.handler"
   runtime       = "python3.11"
@@ -93,7 +99,7 @@ resource "aws_lambda_function" "mocksy_lambda" {
 
   source_code_hash = filebase64sha256("../deployment-package.zip")
 
-  role =  var.lambda_role
+  role =   length(aws_iam_role.lambda_execution_role) > 0 ? aws_iam_role.lambda_execution_role[0].arn : data.external.iam_role_check.result.arn
 
   memory_size = 128
   timeout     = 30
@@ -115,14 +121,14 @@ resource "aws_lambda_function" "mocksy_lambda" {
 
 # Actualizar el código de la Lambda si ya existe
 resource "null_resource" "lambda_update_trigger" {
-  count = data.external.existing_lambda.result.exists ? 0 : 1
+  count = data.external.existing_lambda.result.exists == "true" ? 1 : 0
 
   provisioner "local-exec" {
     command = <<EOT
       aws lambda update-function-code \
-        --function-name ${var.lambda_function_name} \
-        --s3-bucket ${aws_s3_bucket.lambda_bucket.id} \
-        --s3-key ${aws_s3_object.lambda_zip.key}
+        --function-name "${var.lambda_function_name}" \
+        --s3-bucket "${aws_s3_bucket.lambda_bucket.id}" \
+        --s3-key "${aws_s3_object.lambda_zip.key}"
     EOT
   }
 }
