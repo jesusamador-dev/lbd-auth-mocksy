@@ -20,22 +20,34 @@ async def login(data: dict, response: Response):
     auth_result = use_case.execute(data["email"], data["password"])
 
     if "error" in auth_result:
-        return {"error": auth_result["error"]}
+        return {"error": auth_result.get("error")}
 
-    response.set_cookie(key="access_token", value=auth_result["access_token"], httponly=True, secure=True, samesite="Lax")
-    response.set_cookie(key="refresh_token", value=auth_result["refresh_token"], httponly=True, secure=True, samesite="Lax")
+    response.set_cookie(key="access_token",
+                        value=auth_result.get("access_token"),
+                        httponly=True,
+                        secure=True,
+                        samesite="Lax")
+    response.set_cookie(key="refresh_token",
+                        value=auth_result.get("refresh_token"),
+                        httponly=True,
+                        secure=True,
+                        samesite="Lax")
     return {"message": "Login exitoso"}
 
 
 @router.post("/refresh")
 async def refresh(request: Request, response: Response):
     refresh_token = request.cookies.get("refresh_token")
+    access_token = request.cookies.get("access_token")
 
     if not refresh_token:
         return {"error": "No refresh token found"}
 
+    if not access_token:
+        return {"error": "No access token found"}
+
     use_case = RefreshTokenUseCase(auth_gateway)
-    auth_result = use_case.execute(refresh_token)
+    auth_result = use_case.execute(refresh_token, access_token)
 
     if "error" in auth_result:
         return {"error": auth_result["error"]}

@@ -8,3 +8,4 @@ boto3==1.37.13
 
 SQLAlchemy==2.0.39
 psycopg2-binary==2.9.10
+pyjwt==2.10.1

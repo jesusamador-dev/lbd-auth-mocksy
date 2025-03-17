@@ -11,7 +11,7 @@ class AuthGatewayInterface(ABC):
         pass
 
     @abstractmethod
-    def refresh_token(self, refresh_token: str):
+    def refresh_token(self, refresh_token: str, access_token: str):
         pass
 
     @abstractmethod

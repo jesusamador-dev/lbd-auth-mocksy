@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 from abc import ABC
+import jwt
 
 import boto3
 import os
@@ -30,11 +31,17 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             return {"error": str(e)}
 
     def sign_in(self, email: str, password: str) -> object:
+        auth_params = {
+            "USERNAME": email,
+            "PASSWORD": password,
+            "SECRET_HASH": self._generate_secret_hash(email),
+        }
+
         try:
             auth_response = self.client.initiate_auth(
                 AuthFlow="USER_PASSWORD_AUTH",
                 ClientId=self.client_id,
-                AuthParameters={"USERNAME": email, "PASSWORD": password},
+                AuthParameters=auth_params,
             )
             return {
                 "access_token": auth_response["AuthenticationResult"]["IdToken"],
@@ -43,12 +50,18 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
         except Exception as e:
             return {"error": str(e)}
 
-    def refresh_token(self, refresh_token: str):
+    def refresh_token(self, refresh_token: str, access_token: str):
+        sub = self._extract_sub_from_expired_token(access_token=access_token)
+        secret_hash = self._generate_secret_hash(sub)
+        auth_params = {
+            "REFRESH_TOKEN": refresh_token,
+            "SECRET_HASH": secret_hash
+        }
         try:
             auth_response = self.client.initiate_auth(
                 AuthFlow="REFRESH_TOKEN_AUTH",
                 ClientId=self.client_id,
-                AuthParameters={"REFRESH_TOKEN": refresh_token},
+                AuthParameters=auth_params,
             )
             return {
                 "access_token": auth_response["AuthenticationResult"]["IdToken"]
@@ -65,3 +78,8 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
         key = self.cognito_client_secret.encode("utf-8")
         secret_hash = base64.b64encode(hmac.new(key, message, digestmod=hashlib.sha256).digest()).decode("utf-8")
         return secret_hash
+
+    def _extract_sub_from_expired_token(self, access_token: str) -> str:
+        payload = jwt.decode(access_token, options={"verify_signature": False})
+        return payload.get("sub")
+
