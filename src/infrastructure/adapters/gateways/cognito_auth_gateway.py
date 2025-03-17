@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import hmac
 from abc import ABC
 
 import boto3
@@ -10,11 +13,14 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
         self.client = boto3.client("cognito-idp", region_name=os.getenv("AWS_REGION"))
         self.user_pool_id = os.getenv("COGNITO_USER_POOL_ID")
         self.client_id = os.getenv("COGNITO_CLIENT_ID")
+        self.cognito_client_secret = os.getenv("COGNITO_CLIENT_SECRET")
 
     def sign_up(self, email: str, password: str) -> object:
         try:
+            secret_hash = self._generate_secret_hash(email)
             self.client.sign_up(
                 ClientId=self.client_id,
+                SecretHash=secret_hash,
                 Username=email,
                 Password=password,
                 UserAttributes=[{"Name": "email", "Value": email}],
@@ -53,3 +59,9 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
     def authorizer(self, access_token: str):
         return "OK"
 
+    def _generate_secret_hash(self, username: str) -> str:
+        """Calcula el SECRET_HASH usando Client Secret, Client ID y el nombre de usuario"""
+        message = f"{username}{self.client_id}".encode("utf-8")
+        key = self.cognito_client_secret.encode("utf-8")
+        secret_hash = base64.b64encode(hmac.new(key, message, digestmod=hashlib.sha256).digest()).decode("utf-8")
+        return secret_hash

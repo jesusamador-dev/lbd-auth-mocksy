@@ -106,15 +106,16 @@ resource "aws_lambda_function" "mocksy_lambda" {
 
   environment {
     variables = {
-      COGNITO_USER_POOL_ID = var.COGNITO_USER_POOL_ID
-      COGNITO_CLIENT_ID    = var.COGNITO_CLIENT_ID
-      COGNITO_DOMAIN       = var.COGNITO_DOMAIN
-      DB_USER              = var.DB_USER
-      DB_PASSWORD          = var.DB_PASSWORD
-      DB_HOST              = var.DB_HOST
-      DB_PORT              = var.DB_PORT
-      DB_NAME              = var.DB_NAME
-      PYTHONPATH           = var.PYTHONPATH
+      COGNITO_USER_POOL_ID  = var.COGNITO_USER_POOL_ID
+      COGNITO_CLIENT_ID     = var.COGNITO_CLIENT_ID
+      COGNITO_CLIENT_SECRET = var.COGNITO_CLIENT_SECRET
+      COGNITO_DOMAIN        = var.COGNITO_DOMAIN
+      DB_USER               = var.DB_USER
+      DB_PASSWORD           = var.DB_PASSWORD
+      DB_HOST               = var.DB_HOST
+      DB_PORT               = var.DB_PORT
+      DB_NAME               = var.DB_NAME
+      PYTHONPATH            = var.PYTHONPATH
     }
   }
 }

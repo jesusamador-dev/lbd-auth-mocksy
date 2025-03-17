@@ -78,6 +78,7 @@ jobs:
           -var="COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" \
           -var="COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" \
           -var="COGNITO_DOMAIN=${{ secrets.COGNITO_DOMAIN }}" \
+          -var="COGNITO_DOMAIN=${{ secrets.COGNITO_CLIENT_SECRET }}" \
           -var="DB_USER=${{ secrets.DB_USER }}" \
           -var="DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
           -var="DB_HOST=${{ secrets.DB_HOST }}" \
@@ -91,6 +92,7 @@ jobs:
           -var="COGNITO_USER_POOL_ID=${{ secrets.COGNITO_USER_POOL_ID }}" \
           -var="COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }}" \
           -var="COGNITO_DOMAIN=${{ secrets.COGNITO_DOMAIN }}" \
+          -var="COGNITO_DOMAIN=${{ secrets.COGNITO_CLIENT_SECRET }}" \
           -var="DB_USER=${{ secrets.DB_USER }}" \
           -var="DB_PASSWORD=${{ secrets.DB_PASSWORD }}" \
           -var="DB_HOST=${{ secrets.DB_HOST }}" \
