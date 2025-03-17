@@ -1,10 +1,19 @@
+terraform {
+  required_providers {
+    external = {
+      source  = "hashicorp/external"
+      version = "~> 2.2"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
 
 # Bucket S3 para almacenar el ZIP de la Lambda
 resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "mocksy-lambda-bucket-${random_id.bucket_id.hex}"
+  bucket = "lbd-auth-mocksy-bucket-${random_id.bucket_id.hex}"
 }
 
 resource "random_id" "bucket_id" {
@@ -17,14 +26,18 @@ resource "aws_s3_object" "lambda_zip" {
   source = "../deployment-package.zip" # Ruta local del ZIP
 }
 
-# Data source para buscar el rol existente
-data "aws_iam_role" "existing_role" {
-  name = var.lambda_role
+# Validar si el IAM Role existe antes de usarlo
+data "external" "iam_role_check" {
+  program = ["bash", "./bash/check_iam_role.sh"]
+
+  query = {
+    role_name = var.lambda_role
+  }
 }
 
 # Crear el rol si no existe
 resource "aws_iam_role" "lambda_execution_role" {
-  count = can(data.aws_iam_role.existing_role.name) ? 0 : 1
+  count = data.external.iam_role_check.result.exists ? 0 : 1
 
   name = var.lambda_role
 
@@ -44,29 +57,34 @@ resource "aws_iam_role" "lambda_execution_role" {
 
 # Adjuntar política AWSLambdaBasicExecutionRole
 resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       = coalesce(try(data.aws_iam_role.existing_role.name, null), try(aws_iam_role.lambda_execution_role[0].name, null))
+  role       =  var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # Adjuntar política AmazonCognitoPowerUser
 resource "aws_iam_role_policy_attachment" "cognito_power_user" {
-  role       = coalesce(try(data.aws_iam_role.existing_role.name, null), try(aws_iam_role.lambda_execution_role[0].name, null))
+  role       =  var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
 }
 
 resource "aws_iam_role_policy_attachment" "s3_power_user" {
-  role       = coalesce(try(data.aws_iam_role.existing_role.name, null), try(aws_iam_role.lambda_execution_role[0].name, null))
+  role       = var.lambda_role
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-# Data source para buscar la Lambda existente
-data "aws_lambda_function" "existing_lambda" {
-  function_name = var.lambda_function_name
+
+# Validar si la Lambda existe antes de usarla
+data "external" "existing_lambda" {
+  program = ["bash", "./bash/check_lambda.sh"]
+
+  query = {
+    lambda_name = var.lambda_function_name
+  }
 }
 
 # Unificar creación y actualización de Lambda
 resource "aws_lambda_function" "mocksy_lambda" {
-  count         = length(try(data.aws_lambda_function.existing_lambda.id, [])) > 0 ? 0 : 1
+  count         = data.external.existing_lambda.result.exists ? 0 : 1
   function_name = var.lambda_function_name
   handler       = "main.handler"
   runtime       = "python3.11"
@@ -75,10 +93,7 @@ resource "aws_lambda_function" "mocksy_lambda" {
 
   source_code_hash = filebase64sha256("../deployment-package.zip")
 
-  role = coalesce(
-    try(data.aws_iam_role.existing_role.arn, null),
-    length(aws_iam_role.lambda_execution_role) > 0 ? aws_iam_role.lambda_execution_role[0].arn : null
-  )
+  role =  var.lambda_role
 
   memory_size = 128
   timeout     = 30
@@ -100,12 +115,12 @@ resource "aws_lambda_function" "mocksy_lambda" {
 
 # Actualizar el código de la Lambda si ya existe
 resource "null_resource" "lambda_update_trigger" {
-  count = length(try(data.aws_lambda_function.existing_lambda.arn, [])) > 0 ? 1 : 0
+  count = data.external.existing_lambda.result.exists ? 0 : 1
 
   provisioner "local-exec" {
     command = <<EOT
       aws lambda update-function-code \
-        --function-name ${data.aws_lambda_function.existing_lambda.function_name} \
+        --function-name ${var.lambda_function_name} \
         --s3-bucket ${aws_s3_bucket.lambda_bucket.id} \
         --s3-key ${aws_s3_object.lambda_zip.key}
     EOT
