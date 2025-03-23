@@ -4,19 +4,17 @@ import hmac
 from abc import ABC
 import jwt
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
 import boto3
 import os
 
 from src.domain.errors.confirmation_code_errors import ResendConfirmationCodeError, InvalidConfirmationCodeError, \
     UserAlreadyConfirmedError
-from src.domain.errors.sign_in_errors import (UserNotFoundError,
-                                              IncorrectPasswordError,
-                                              PasswordResetRequiredError,
-                                              SignInError)
-from src.domain.errors.sign_up_errors import UserAlreadyExistsError, InvalidUserAttributesError, SignUpError
+from src.domain.errors.sign_in_errors import IncorrectPasswordError, PasswordResetRequiredError
+from src.domain.errors.sign_up_errors import UserAlreadyExistsError, InvalidUserAttributesError
 from src.domain.errors.token_refresh_errors import InvalidRefreshTokenError, TokenRefreshError
 from src.domain.interfaces.gateways.auth_gateway_interface import AuthGatewayInterface
+from requests import get
+from jwt.algorithms import RSAAlgorithm
 
 
 class CognitoAuthGateway(AuthGatewayInterface, ABC):
@@ -25,6 +23,12 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
         self.user_pool_id = os.getenv("COGNITO_USER_POOL_ID")
         self.client_id = os.getenv("COGNITO_CLIENT_ID")
         self.cognito_client_secret = os.getenv("COGNITO_CLIENT_SECRET")
+        self.aws_region = os.getenv("AWS_REGION")
+        self.jwks_url = f"https://cognito-idp.{self.aws_region}.amazonaws.com/{self.user_pool_id}/.well-known/jwks.json"
+
+    def _fetch_jwks_keys(self):
+        response = get(self.jwks_url)
+        return response.json()["keys"]
 
     def sign_up(self, email: str, password: str) -> object:
         try:
@@ -90,8 +94,28 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             else:
                 raise TokenRefreshError("An unexpected error occurred during token refresh")
 
+    def _jwk_to_public_key(self, jwk_key):
+        public_key = RSAAlgorithm.from_jwk(jwk_key)
+        return public_key
+
     def authorizer(self, access_token: str):
-        return "OK"
+        jwks_keys = self._fetch_jwks_keys()
+        header = jwt.get_unverified_header(access_token)
+        rsa_key = jwks_keys.get(header['kid'])
+        if not rsa_key:
+            raise ValueError("Key ID not found in JWKS keys")
+
+        public_key = self._jwk_to_public_key(jwk_key=rsa_key)
+
+        # Decodificar y verificar el token
+        decoded = jwt.decode(
+            access_token,
+            public_key,
+            algorithms=["RS256"],
+            audience=self.client_id,
+            issuer=f"https://cognito-idp.{self.aws_region}.amazonaws.com/{self.user_pool_id}"
+        )
+        return {"message": "Ok", "decode": decoded}
 
     def _generate_secret_hash(self, username: str) -> str:
         """Calcula el SECRET_HASH usando Client Secret, Client ID y el nombre de usuario"""

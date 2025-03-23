@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Response, Request
+from fastapi import APIRouter, Response, Request, HTTPException
 
+from src.application.use_cases.auth.authorizer_use_case import AuthorizerUseCase
 from src.application.use_cases.auth.resend_confirmation_code_use_case import ResendConfirmationCodeUseCase
 from src.application.use_cases.auth.sign_up_use_case import SignUpUseCase
 from src.application.use_cases.auth.sign_in_use_case import SignInUseCase
@@ -23,9 +24,6 @@ async def register(request: SignUpDTO):
 async def login(request: SignInDTO, response: Response):
     use_case = SignInUseCase(auth_gateway)
     auth_result = use_case.execute(request.email, request.password)
-
-    if "error" in auth_result:
-        return {"error": auth_result.get("error")}
 
     response.set_cookie(key="access_token",
                         value=auth_result.get("access_token"),
@@ -63,8 +61,22 @@ async def refresh(request: Request, response: Response):
 
 
 @router.post("/confirm")
-async def refresh(request: Request, response: Response):
+async def confirm(request: Request, response: Response):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=403, detail="Token not found")
     return {"message": "Usuario confirmado"}
+
+
+@router.post("/authorizer")
+async def refresh(request: Request, response: Response):
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=403, detail="Token not found")
+
+    use_case = AuthorizerUseCase(auth_gateway)
+
+    return use_case.execute(token=access_token)
 
 
 @router.post("/resend-confirmation-code")
