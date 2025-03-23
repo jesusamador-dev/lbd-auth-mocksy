@@ -14,7 +14,7 @@ from src.domain.errors.sign_up_errors import UserAlreadyExistsError, InvalidUser
 from src.domain.errors.token_refresh_errors import InvalidRefreshTokenError, TokenRefreshError
 from src.domain.interfaces.gateways.auth_gateway_interface import AuthGatewayInterface
 from requests import get
-from jwt.algorithms import RSAAlgorithm
+from src.infrastructure.services.crypto_service import CryptoService
 
 
 class CognitoAuthGateway(AuthGatewayInterface, ABC):
@@ -95,7 +95,7 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
                 raise TokenRefreshError("An unexpected error occurred during token refresh")
 
     def _jwk_to_public_key(self, jwk_key):
-        public_key = RSAAlgorithm.from_jwk(jwk_key)
+        public_key = CryptoService.jwk_to_pem(jwk_key)
         return public_key
 
     def authorizer(self, access_token: str):
