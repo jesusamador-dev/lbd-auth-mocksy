@@ -11,9 +11,17 @@ class AuthGatewayInterface(ABC):
         pass
 
     @abstractmethod
-    def refresh_token(self, refresh_token: str):
+    def refresh_token(self, refresh_token: str, access_token: str):
         pass
 
     @abstractmethod
     def authorizer(self, access_token: str):
+        pass
+
+    @abstractmethod
+    def resend_confirmation_code(self, email: str):
+        pass
+
+    @abstractmethod
+    def confirm_user(self, email: str, confirmation_code: str):
         pass
