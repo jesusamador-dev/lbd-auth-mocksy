@@ -29,12 +29,12 @@ async def login(request: SignInDTO, response: Response):
                         value=auth_result.get("access_token"),
                         httponly=True,
                         secure=True,
-                        samesite="Lax")
+                        samesite="lax")
     response.set_cookie(key="refresh_token",
                         value=auth_result.get("refresh_token"),
                         httponly=True,
                         secure=True,
-                        samesite="Lax")
+                        samesite="lax")
     return {"message": "Login exitoso"}
 
 
@@ -68,7 +68,7 @@ async def confirm(request: Request, response: Response):
     return {"message": "Usuario confirmado"}
 
 
-@router.post("/authorizer")
+@router.get("/authorizer")
 async def refresh(request: Request, response: Response):
     access_token = request.cookies.get("access_token")
     if not access_token:
