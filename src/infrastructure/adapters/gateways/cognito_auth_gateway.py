@@ -101,7 +101,8 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
     def authorizer(self, access_token: str):
         jwks_keys = self._fetch_jwks_keys()
         header = jwt.get_unverified_header(access_token)
-        rsa_key = jwks_keys.get(header['kid'])
+        kid = header['kid']
+        rsa_key = next((key for key in jwks_keys if key['kid'] == kid), None)
         if not rsa_key:
             raise ValueError("Key ID not found in JWKS keys")
 
@@ -115,7 +116,7 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             audience=self.client_id,
             issuer=f"https://cognito-idp.{self.aws_region}.amazonaws.com/{self.user_pool_id}"
         )
-        return {"message": "Ok", "decode": decoded}
+        return {"message": "Ok"}
 
     def _generate_secret_hash(self, username: str) -> str:
         """Calcula el SECRET_HASH usando Client Secret, Client ID y el nombre de usuario"""

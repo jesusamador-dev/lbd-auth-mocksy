@@ -10,4 +10,5 @@ class AuthorizerUseCase:
         try:
             return self.auth_gateway.authorizer(access_token=token)
         except Exception as e:
+            print(e)
             raise HTTPException(status_code=500, detail="Server error")
