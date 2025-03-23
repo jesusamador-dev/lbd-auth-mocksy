@@ -45,19 +45,20 @@ async def refresh(request: Request, response: Response):
     access_token = request.cookies.get("access_token")
 
     if not refresh_token:
-        return {"error": "No refresh token found"}
+        raise HTTPException(status_code=403, detail="No refresh token found")
 
     if not access_token:
-        return {"error": "No access token found"}
+        raise HTTPException(status_code=403, detail="No access token found")
 
     use_case = RefreshTokenUseCase(auth_gateway)
     auth_result = use_case.execute(refresh_token, access_token)
 
-    if "error" in auth_result:
-        return {"error": auth_result["error"]}
+    response.set_cookie(key="access_token",
+                        value=auth_result.get("access_token"),
+                        httponly=True,
+                        secure=True,
+                        samesite="lax")
 
-    response.set_cookie(key="access_token", value=auth_result["access_token"], httponly=True, secure=True,
-                        samesite="Lax")
     return {"message": "Token actualizado"}
 
 
