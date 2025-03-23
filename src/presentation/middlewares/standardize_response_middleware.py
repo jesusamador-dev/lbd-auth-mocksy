@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import json
-from uuid import uuid4
 from src.presentation.dtos.response_dto import SuccessResponse, ErrorResponse
 
 app = FastAPI()
@@ -14,10 +13,15 @@ async def standardize_response(request: Request, call_next):
     async for chunk in response.body_iterator:
         body_parts.append(chunk)
     body = b''.join(body_parts)
+    headers = dict(response.headers)
+    headers.pop('content-length', None)
     if 200 <= response.status_code < 300:
         data = json.loads(body.decode())
         standardized_response = SuccessResponse(data=data)
-        return JSONResponse(content=standardized_response.dict(), status_code=response.status_code)
+        return JSONResponse(
+            content=standardized_response.dict(),
+            status_code=response.status_code,
+            headers=headers)
     else:
 
         error_data = json.loads(body.decode())
@@ -25,7 +29,9 @@ async def standardize_response(request: Request, call_next):
         error_response = ErrorResponse(
             error="An error occurred",
             data=error_data,
-            responseId=str(uuid4())
         )
-        return JSONResponse(content=error_response.dict(), status_code=response.status_code)
+        return JSONResponse(
+            content=error_response.dict(),
+            status_code=response.status_code,
+            headers=headers)
 
