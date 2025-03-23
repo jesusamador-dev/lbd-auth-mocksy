@@ -6,4 +6,4 @@ class SignUpUseCase:
         self.auth_gateway = auth_gateway
 
     def execute(self, email: str, password: str) -> object:
-        return self.auth_gateway.sign_up(email, password)
+        return self.auth_gateway.sign_up(email=email, password=password)

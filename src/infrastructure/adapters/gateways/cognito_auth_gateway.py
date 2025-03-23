@@ -3,7 +3,8 @@ import hashlib
 import hmac
 from abc import ABC
 import jwt
-
+from botocore.exceptions import BotoCoreError, ClientError
+from fastapi import HTTPException
 import boto3
 import os
 from src.domain.interfaces.gateways.auth_gateway_interface import AuthGatewayInterface
@@ -51,7 +52,7 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             return {"error": str(e)}
 
     def refresh_token(self, refresh_token: str, access_token: str):
-        sub = self._extract_sub_from_expired_token(access_token=access_token)
+        sub = self._extract_from_expired_token(access_token=access_token, key="sub")
         secret_hash = self._generate_secret_hash(sub)
         auth_params = {
             "REFRESH_TOKEN": refresh_token,
@@ -79,7 +80,31 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
         secret_hash = base64.b64encode(hmac.new(key, message, digestmod=hashlib.sha256).digest()).decode("utf-8")
         return secret_hash
 
-    def _extract_sub_from_expired_token(self, access_token: str) -> str:
+    def _extract_from_expired_token(self, access_token: str, key: str) -> str:
         payload = jwt.decode(access_token, options={"verify_signature": False})
-        return payload.get("sub")
+        return payload.get(key)
+
+    def confirm_user(self, email: str, confirmation_code: str):
+        try:
+            response = self.client.confirm_sign_up(
+                ClientId=self.client_id,
+                Username=email,
+                ConfirmationCode=confirmation_code,
+                SecretHash=self._generate_secret_hash(email)
+            )
+            return response
+        except ClientError as e:
+            raise HTTPException(status_code=400, detail=f"Error confirming user: {e.response['Error']['Message']}")
+
+    def resend_confirmation_code(self, email: str):
+        try:
+            response = self.client.resend_confirmation_code(
+                ClientId=self.client_id,
+                Username=email,
+                SecretHash=self._generate_secret_hash(email)
+            )
+            return response
+        except ClientError as e:
+            raise HTTPException(status_code=400,
+                                detail=f"Error resending confirmation code: {e.response['Error']['Message']}")
 

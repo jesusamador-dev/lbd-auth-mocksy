@@ -17,3 +17,11 @@ class AuthGatewayInterface(ABC):
     @abstractmethod
     def authorizer(self, access_token: str):
         pass
+
+    @abstractmethod
+    def resend_confirmation_code(self, email: str):
+        pass
+
+    @abstractmethod
+    def confirm_user(self, email: str, confirmation_code: str):
+        pass

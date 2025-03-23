@@ -6,4 +6,4 @@ class RefreshTokenUseCase:
         self.auth_gateway = auth_gateway
 
     def execute(self, refresh_token: str, access_token: str):
-        return self.auth_gateway.refresh_token(refresh_token, access_token)
+        return self.auth_gateway.refresh_token(refresh_token=refresh_token, access_token=access_token)

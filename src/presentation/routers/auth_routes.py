@@ -3,21 +3,23 @@ from src.application.use_cases.auth.sign_up_use_case import SignUpUseCase
 from src.application.use_cases.auth.sign_in_use_case import SignInUseCase
 from src.application.use_cases.auth.refresh_token_use_case import RefreshTokenUseCase
 from src.infrastructure.adapters.gateways.cognito_auth_gateway import CognitoAuthGateway
+from src.presentation.dtos.auth.sign_in_dto import SignInDTO
+from src.presentation.dtos.auth.sign_up_dto import SignUpDTO
 
 router = APIRouter()
 auth_gateway = CognitoAuthGateway()
 
 
 @router.post("/register")
-async def register(data: dict):
+async def register(request: SignUpDTO):
     use_case = SignUpUseCase(auth_gateway)
-    return use_case.execute(data["email"], data["password"])
+    return use_case.execute(request.email, request.password)
 
 
 @router.post("/login")
-async def login(data: dict, response: Response):
+async def login(request: SignInDTO, response: Response):
     use_case = SignInUseCase(auth_gateway)
-    auth_result = use_case.execute(data["email"], data["password"])
+    auth_result = use_case.execute(request.email, request.password)
 
     if "error" in auth_result:
         return {"error": auth_result.get("error")}
@@ -54,3 +56,14 @@ async def refresh(request: Request, response: Response):
 
     response.set_cookie(key="access_token", value=auth_result["access_token"], httponly=True, secure=True, samesite="Lax")
     return {"message": "Token actualizado"}
+
+
+@router.post("/confirm")
+async def refresh(request: Request, response: Response):
+
+    return {"message": "Usuario confirmado"}
+
+
+@router.post("/resend-confirmation-code")
+async def refresh(request: Request, response: Response):
+    return {"message": "Usuario confirmado"}
