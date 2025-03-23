@@ -3,10 +3,19 @@ import hashlib
 import hmac
 from abc import ABC
 import jwt
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import ClientError
 from fastapi import HTTPException
 import boto3
 import os
+
+from src.domain.errors.confirmation_code_errors import ResendConfirmationCodeError, InvalidConfirmationCodeError, \
+    UserAlreadyConfirmedError
+from src.domain.errors.sign_in_errors import (UserNotFoundError,
+                                              IncorrectPasswordError,
+                                              PasswordResetRequiredError,
+                                              SignInError)
+from src.domain.errors.sign_up_errors import UserAlreadyExistsError, InvalidUserAttributesError, SignUpError
+from src.domain.errors.token_refresh_errors import InvalidRefreshTokenError, TokenRefreshError
 from src.domain.interfaces.gateways.auth_gateway_interface import AuthGatewayInterface
 
 
@@ -28,8 +37,12 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
                 UserAttributes=[{"Name": "email", "Value": email}],
             )
             return {"message": "Usuario registrado. Confirma el email."}
-        except Exception as e:
-            return {"error": str(e)}
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == "UsernameExistsException":
+                raise UserAlreadyExistsError("A user with the given email already exists.")
+            elif error_code in ["InvalidParameterException", "InvalidPasswordException"]:
+                raise InvalidUserAttributesError("Provided user attributes are invalid.")
 
     def sign_in(self, email: str, password: str) -> object:
         auth_params = {
@@ -37,7 +50,6 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             "PASSWORD": password,
             "SECRET_HASH": self._generate_secret_hash(email),
         }
-
         try:
             auth_response = self.client.initiate_auth(
                 AuthFlow="USER_PASSWORD_AUTH",
@@ -48,8 +60,12 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
                 "access_token": auth_response["AuthenticationResult"]["IdToken"],
                 "refresh_token": auth_response["AuthenticationResult"]["RefreshToken"]
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == "NotAuthorizedException":
+                raise IncorrectPasswordError()
+            elif error_code == "PasswordResetRequiredException":
+                raise PasswordResetRequiredError()
 
     def refresh_token(self, refresh_token: str, access_token: str):
         sub = self._extract_from_expired_token(access_token=access_token, key="sub")
@@ -67,8 +83,12 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             return {
                 "access_token": auth_response["AuthenticationResult"]["IdToken"]
             }
-        except Exception as e:
-            return {"error": str(e)}
+        except ClientError as e:
+            error_code = e.response['Error']['Code']
+            if error_code == "NotAuthorizedException":
+                raise InvalidRefreshTokenError()
+            else:
+                raise TokenRefreshError("An unexpected error occurred during token refresh")
 
     def authorizer(self, access_token: str):
         return "OK"
@@ -94,7 +114,12 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
             )
             return response
         except ClientError as e:
-            raise HTTPException(status_code=400, detail=f"Error confirming user: {e.response['Error']['Message']}")
+            error_code = e.response['Error']['Code']
+            error_message = e.response['Error']['Message']
+            if error_code == "CodeMismatchException":
+                raise InvalidConfirmationCodeError(f"Error confirming user: {error_message}")
+            elif error_code == "NotAuthorizedException" or error_code == "LimitExceededException":
+                raise UserAlreadyConfirmedError(f"Error confirming user: {error_message}")
 
     def resend_confirmation_code(self, email: str):
         try:
@@ -103,8 +128,7 @@ class CognitoAuthGateway(AuthGatewayInterface, ABC):
                 Username=email,
                 SecretHash=self._generate_secret_hash(email)
             )
-            return response
+            return {"message": "Código reenviado."}
         except ClientError as e:
-            raise HTTPException(status_code=400,
-                                detail=f"Error resending confirmation code: {e.response['Error']['Message']}")
-
+            error_message = e.response['Error']['Message']
+            raise ResendConfirmationCodeError(f"Error resending confirmation code: {error_message}")

@@ -21,11 +21,10 @@ async def standardize_response(request: Request, call_next):
     else:
 
         error_data = json.loads(body.decode())
-        error_details = error_data.get("detail", "No detail provided")
 
         error_response = ErrorResponse(
             error="An error occurred",
-            details={"info": error_details},
+            data=error_data,
             responseId=str(uuid4())
         )
         return JSONResponse(content=error_response.dict(), status_code=response.status_code)
