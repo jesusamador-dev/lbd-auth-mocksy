@@ -30,6 +30,7 @@ async def login(request: SignInDTO, response: Response):
                         httponly=True,
                         secure=True,
                         samesite="lax")
+
     response.set_cookie(key="refresh_token",
                         value=auth_result.get("refresh_token"),
                         httponly=True,
